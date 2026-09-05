@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+jinja2
+sqlalchemy
+psycopg2-binary
+pandas
+numpy
+scikit-learn
+xgboost
+imbalanced-learn
+python-dotenv
+requests
+joblib
+plotly
+httpx

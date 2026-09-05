@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold text-slate-800">Analisis & Performa Model</h2>
+        
+        <div class="flex space-x-3">
+             <button id="trainBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition shadow-lg flex items-center">
+                <i class="fas fa-robot mr-2"></i> Latih Model (AutoML)
+            </button>
+        </div>
+    </div>
+
+    <!-- Training Progress Section -->
+    <div id="trainingSection" class="hidden bg-white p-6 rounded-xl shadow-md mb-8 border-l-4 border-indigo-500">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-lg text-slate-800">Training in Progress...</h3>
+            <button onclick="clearLogs()" class="text-xs text-red-500 hover:text-red-700 underline">Clear Logs</button>
+        </div>
+        <p class="text-slate-500 text-sm mb-4">Sistem sedang melakukan hyperparameter tuning dan cross-validation.</p>
+        
+        <div class="w-full bg-slate-200 rounded-full h-2.5 mb-4">
+            <div class="bg-indigo-600 h-2.5 rounded-full animate-pulse" style="width: 100%"></div>
+        </div>
+        
+        <div class="bg-slate-900 text-green-400 font-mono text-xs p-4 rounded h-40 overflow-y-auto" id="trainingLogs">
+            <div class="opacity-50">> Initializing system...</div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMsg" class="hidden mb-6 p-4 rounded-lg"></div>
+
+    <!-- Metrics Cards -->
+    {% if metrics %}
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500 text-center">
+            <div class="text-sm text-slate-500">Akurasi</div>
+            <div class="text-2xl font-bold text-slate-800">{{ "%.2f"|format(metrics.accuracy * 100) }}%</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500 text-center">
+            <div class="text-sm text-slate-500">Presisi</div>
+            <div class="text-2xl font-bold text-slate-800">{{ "%.2f"|format(metrics.precision * 100) }}%</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500 text-center">
+            <div class="text-sm text-slate-500">Recall</div>
+            <div class="text-2xl font-bold text-slate-800">{{ "%.2f"|format(metrics.recall * 100) }}%</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500 text-center">
+            <div class="text-sm text-slate-500">F1 Score</div>
+            <div class="text-2xl font-bold text-slate-800">{{ "%.2f"|format(metrics.f1_score * 100) }}%</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500 text-center">
+            <div class="text-sm text-slate-500">ROC AUC</div>
+            <div class="text-2xl font-bold text-slate-800">{{ "%.2f"|format(metrics.roc_auc * 100) }}%</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <!-- Feature Importance -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4 border-b pb-2">Fitur Paling Berpengaruh</h3>
+            <canvas id="featureChart"></canvas>
+        </div>
+
+        <!-- Confusion Matrix -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4 border-b pb-2">Confusion Matrix</h3>
+            {% if cm %}
+            <div class="grid grid-cols-2 gap-4 text-center mt-8">
+                <div class="bg-green-100 p-4 rounded">
+                    <div class="text-xs text-green-800 font-bold uppercase">True Negative</div>
+                    <div class="text-2xl font-bold text-green-900">{{ cm.true_negative }}</div>
+                </div>
+                <div class="bg-red-100 p-4 rounded">
+                    <div class="text-xs text-red-800 font-bold uppercase">False Positive</div>
+                    <div class="text-2xl font-bold text-red-900">{{ cm.false_positive }}</div>
+                </div>
+                <div class="bg-red-100 p-4 rounded">
+                    <div class="text-xs text-red-800 font-bold uppercase">False Negative</div>
+                    <div class="text-2xl font-bold text-red-900">{{ cm.false_negative }}</div>
+                </div>
+                <div class="bg-green-100 p-4 rounded">
+                    <div class="text-xs text-green-800 font-bold uppercase">True Positive</div>
+                    <div class="text-2xl font-bold text-green-900">{{ cm.true_positive }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded text-yellow-800 mb-8">
+        Belum ada data model. Silakan latih model terlebih dahulu.
+    </div>
+    {% endif %}
+
+    <!-- Model Versions -->
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+            <h3 class="text-lg font-semibold text-slate-700">Versi Model Tersimpan</h3>
+        </div>
+        <table class="min-w-full divide-y divide-slate-200" id="modelTable">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Versi</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Algoritma</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Akurasi</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">F1 Score</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dibuat</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-200" id="modelList">
+                <!-- Loaded via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Initial data for charts (will be populated by backend if available, or fetch via API)
+    // For now, we simulate the "Growth" with historical data passed from backend
+    // In a real app, this should come from the 'models' variable
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const modelsData = [
+            {% for m in models|reverse %}
+            {
+                version: '{{ m.version }}',
+                accuracy: {{ m.accuracy }},
+                f1: {{ m.f1_score }},
+                date: '{{ m.created_at }}'
+            },
+            {% endfor %}
+        ];
+
+        if (document.getElementById('growthChart') && modelsData.length > 0) {
+            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
+            new Chart(ctxGrowth, {
+                type: 'line',
+                data: {
+                    labels: modelsData.map(m => m.date.split('T')[0]), // Simple date format
+                    datasets: [
+                        {
+                            label: 'Akurasi',
+                            data: modelsData.map(m => m.accuracy),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'F1 Score',
+                            data: modelsData.map(m => m.f1),
+                            borderColor: 'rgb(168, 85, 247)',
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0.5,
+                            max: 1.0
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    // --- Training Logic ---
+    let logInterval;
+
+    const statusMsg = document.getElementById('statusMsg');
+    const trainBtn = document.getElementById('trainBtn');
+
+    window.clearLogs = async function() {
+        if(confirm("Hapus semua log history?")) {
+            await fetch('/api/training/logs', { method: 'DELETE' });
+            document.getElementById('trainingLogs').innerHTML = '<div class="opacity-50">> Logs cleared.</div>';
+        }
+    };
+
+    trainBtn.addEventListener('click', async () => {
+        const btn = document.getElementById('trainBtn');
+        const section = document.getElementById('trainingSection');
+        const logBox = document.getElementById('trainingLogs');
+        
+        if (!confirm("Training dengan hyperparameter tuning mungkin memakan waktu beberapa menit. Lanjutkan?")) return;
+
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        section.classList.remove('hidden');
+        
+        try {
+            // Trigger Training
+            await fetch('/api/train', { method: 'POST' });
+            
+            // Start Polling Logs
+            logInterval = setInterval(async () => {
+                const res = await fetch('/api/training/logs');
+                const logs = await res.json();
+                
+                logBox.innerHTML = logs.map(l => 
+                    `<div class="mb-1"><span class="text-slate-500">[${l.timestamp.split('T')[1].split('.')[0]}]</span> <span class="${l.level === 'ERROR' ? 'text-red-400' : 'text-green-400'}">${l.message}</span></div>`
+                ).join('');
+                
+                // Check if finished (simple heuristic: look for "Training Selesai" or "Crash")
+                const lastMsg = logs[0]?.message || "";
+                if (lastMsg.includes("Training Selesai") || lastMsg.includes("Crash")) {
+                    clearInterval(logInterval);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    alert("Proses selesai! Halaman akan dimuat ulang.");
+                    window.location.reload();
+                }
+            }, 2000);
+
+        } catch (err) {
+            alert("Gagal memulai training.");
+            btn.disabled = false;
+        }
+    });
+
+    // --- Load Models ---
+    async function loadModels() {
+        const res = await fetch('/api/models');
+        const models = await res.json();
+        const tbody = document.getElementById('modelList');
+        
+        tbody.innerHTML = models.map(m => `
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${m.version}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${m.algorithm}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${(m.accuracy * 100).toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${(m.f1_score * 100).toFixed(2)}%</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${new Date(m.created_at).toLocaleString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <a href="/api/models/download/${m.version}" class="text-blue-600 hover:text-blue-900 font-medium">
+                        <i class="fas fa-download mr-1"></i> Unduh
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+    loadModels();
+
+    // --- Feature Importance Chart ---
+    if (document.getElementById('featureChart')) {
+        // Use real data passed from backend if available
+        let labels = ['Tenure', 'TotalCharges', 'MonthlyCharges', 'Contract', 'InternetService'];
+        let data = [0.35, 0.25, 0.15, 0.15, 0.10];
+
+        {% if features %}
+            labels = [{% for f in features %}"{{ f.feature_name }}",{% endfor %}];
+            data = [{% for f in features %}{{ f.importance_score }},{% endfor %}];
+        {% endif %}
+
+        const ctxFeature = document.getElementById('featureChart').getContext('2d');
+        new Chart(ctxFeature, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Skor Kepentingan',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

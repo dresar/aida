@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold text-slate-800">Analisis Pelanggan</h2>
+        <div class="text-sm text-slate-500">Prediksi real-time menggunakan XGBoost</div>
+    </div>
+
+    <!-- Result Section -->
+    {% if result %}
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border-l-4 {% if result.risk_category == 'High' %}border-red-500{% elif result.risk_category == 'Medium' %}border-orange-500{% else %}border-green-500{% endif %} animate-fade-in">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center md:border-r md:border-slate-100">
+                <h3 class="text-lg font-semibold text-slate-600 mb-2">Probabilitas Churn</h3>
+                <div class="text-5xl font-extrabold {% if result.risk_category == 'High' %}text-red-600{% elif result.risk_category == 'Medium' %}text-orange-500{% else %}text-green-600{% endif %}">
+                    {{ "%.1f"|format(result.churn_probability * 100) }}%
+                </div>
+                <div class="mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium {% if result.risk_category == 'High' %}bg-red-100 text-red-800{% elif result.risk_category == 'Medium' %}bg-orange-100 text-orange-800{% else %}bg-green-100 text-green-800{% endif %}">
+                    Risiko: {{ result.risk_category }}
+                </div>
+            </div>
+            <div class="col-span-2">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-8">
+                    <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center">
+                        <i class="fas fa-brain text-2xl mr-3 text-indigo-600"></i>Rekomendasi Strategi (AI Powered)
+                    </h3>
+                    <div class="prose text-slate-700 bg-slate-50 p-6 rounded-lg border border-slate-100 shadow-inner">
+                        {% if ai_recommendation %}
+                            {{ ai_recommendation|safe }}
+                        {% else %}
+                            <div class="flex items-center text-slate-500 italic p-4">
+                                <i class="fas fa-spinner fa-spin mr-3 text-lg"></i> Menganalisis profil pelanggan...
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 relative" role="alert">
+        <strong class="font-bold">Error!</strong>
+        <span class="block sm:inline">{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Input Form -->
+    <form action="/predict" method="post" class="bg-white rounded-xl shadow-md p-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Column 1: Demographics -->
+            <div class="space-y-4">
+                <h3 class="font-semibold text-slate-700 border-b pb-2">Demografi</h3>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">ID Pelanggan (Opsional)</label>
+                    <input type="text" name="customer_id" placeholder="Contoh: CUST-001" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Jenis Kelamin</label>
+                    <select name="gender" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Male">Laki-laki</option>
+                        <option value="Female">Perempuan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Warga Senior</label>
+                    <select name="senior_citizen" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="0">Tidak</option>
+                        <option value="1">Ya</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Pasangan</label>
+                    <select name="partner" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Yes">Ya</option>
+                        <option value="No">Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Tanggungan</label>
+                    <select name="dependents" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Yes">Ya</option>
+                        <option value="No">Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Tenure (Bulan)</label>
+                    <input type="number" name="tenure" value="12" min="0" max="72" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                </div>
+            </div>
+
+            <!-- Column 2: Services -->
+            <div class="space-y-4">
+                <h3 class="font-semibold text-slate-700 border-b pb-2">Layanan</h3>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Layanan Telepon</label>
+                    <select name="phone_service" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Yes">Ya</option>
+                        <option value="No">Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Internet Service</label>
+                    <select name="internet_service" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Fiber optic">Fiber optic</option>
+                        <option value="DSL">DSL</option>
+                        <option value="No">Tidak Ada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Keamanan Online</label>
+                    <select name="online_security" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="No">Tidak</option>
+                        <option value="Yes">Ya</option>
+                        <option value="No internet service">Tidak ada internet</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Streaming TV</label>
+                    <select name="streaming_tv" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="No">Tidak</option>
+                        <option value="Yes">Ya</option>
+                        <option value="No internet service">Tidak ada internet</option>
+                    </select>
+                </div>
+                <!-- Hidden defaults for simplicity in UI but required by backend -->
+                <input type="hidden" name="multiple_lines" value="No">
+                <input type="hidden" name="online_backup" value="No">
+                <input type="hidden" name="device_protection" value="No">
+                <input type="hidden" name="tech_support" value="No">
+                <input type="hidden" name="streaming_movies" value="No">
+            </div>
+
+            <!-- Column 3: Billing -->
+            <div class="space-y-4">
+                <h3 class="font-semibold text-slate-700 border-b pb-2">Tagihan & Kontrak</h3>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Kontrak</label>
+                    <select name="contract" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Month-to-month">Bulanan</option>
+                        <option value="One year">1 Tahun</option>
+                        <option value="Two year">2 Tahun</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Tagihan Tanpa Kertas</label>
+                    <select name="paperless_billing" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Yes">Ya</option>
+                        <option value="No">Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Metode Pembayaran</label>
+                    <select name="payment_method" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="Electronic check">Electronic Check</option>
+                        <option value="Mailed check">Mailed Check</option>
+                        <option value="Bank transfer (automatic)">Bank Transfer</option>
+                        <option value="Credit card (automatic)">Kartu Kredit</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Tagihan Bulanan (Rp)</label>
+                    <input type="text" id="monthly_charges_display" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border" oninput="formatCurrency(this, 'monthly_charges')">
+                    <input type="hidden" name="monthly_charges" id="monthly_charges" value="70.00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600">Total Tagihan (Rp)</label>
+                    <input type="text" id="total_charges_display" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border" oninput="formatCurrency(this, 'total_charges')">
+                    <input type="hidden" name="total_charges" id="total_charges" value="100.00">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 flex justify-center items-center">
+                <i class="fas fa-rocket mr-2"></i> Prediksi Churn Sekarang
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const EXCHANGE_RATE = 15000;
+
+    function formatRupiah(angka, prefix) {
+        var number_string = angka.replace(/[^,\d]/g, '').toString(),
+            split = number_string.split(','),
+            sisa = split[0].length % 3,
+            rupiah = split[0].substr(0, sisa),
+            ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+        if (ribuan) {
+            separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+
+        rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+        return prefix == undefined ? rupiah : (rupiah ? 'Rp ' + rupiah : '');
+    }
+
+    function formatCurrency(input, hiddenId) {
+        // Remove non-numeric chars except comma
+        let val = input.value.replace(/[^0-9,]/g, '');
+        // Format display
+        input.value = formatRupiah(val, 'Rp');
+        
+        // Update hidden value (convert back to USD)
+        // Remove dots, replace comma with dot for float parsing
+        let raw = val.replace(/\./g, '').replace(',', '.');
+        let floatVal = parseFloat(raw);
+        if (isNaN(floatVal)) floatVal = 0;
+        
+        // Convert IDR to USD
+        let usdVal = floatVal / EXCHANGE_RATE;
+        document.getElementById(hiddenId).value = usdVal.toFixed(2);
+    }
+
+    // Initialize values on load
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const mc = document.getElementById('monthly_charges');
+        const tc = document.getElementById('total_charges');
+        const mcDisplay = document.getElementById('monthly_charges_display');
+        const tcDisplay = document.getElementById('total_charges_display');
+
+        // Convert default USD to IDR for display
+        let mcIDR = Math.round(parseFloat(mc.value) * EXCHANGE_RATE);
+        let tcIDR = Math.round(parseFloat(tc.value) * EXCHANGE_RATE);
+
+        mcDisplay.value = formatRupiah(mcIDR.toString(), 'Rp');
+        tcDisplay.value = formatRupiah(tcIDR.toString(), 'Rp');
+    });
+</script>
+{% endblock %}

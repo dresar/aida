@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Deep Dive SMOTE - Telco AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <div class="bg-white p-8 rounded-xl shadow-md border-l-4 border-indigo-600">
+        <h1 class="text-3xl font-bold text-slate-800 mb-4">🔬 Analisis Mendalam: SMOTE & Imbalanced Learning</h1>
+        <p class="text-slate-600 text-lg leading-relaxed">
+            Halaman ini menyajikan dokumentasi transparan dan analisis teknis mengenai bagaimana 
+            <span class="font-semibold text-indigo-600">Synthetic Minority Over-sampling Technique (SMOTE)</span> 
+            digunakan dalam sistem ini untuk menangani ketidakseimbangan data (Imbalanced Dataset).
+        </p>
+    </div>
+
+    <!-- 1. Preprocessing -->
+    <section class="bg-white p-8 rounded-xl shadow-md">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+            <span class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center mr-3 text-lg">1</span>
+            Deteksi Ketidakseimbangan & Preprocessing
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <h3 class="font-semibold text-lg mb-3">Distribusi Kelas (Ilustrasi)</h3>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+                <p class="text-sm text-slate-500 mt-2 text-center">Rasio ketidakseimbangan yang umum pada data churn adalah sekitar 73:27.</p>
+            </div>
+            <div>
+                <h3 class="font-semibold text-lg mb-3">Tahapan Preprocessing</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        <div><span class="font-semibold">Pemisahan Fitur:</span> Target (Churn) dipisahkan dari fitur prediktif.</div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        <div><span class="font-semibold">Encoding:</span> Mengubah variabel kategori (Gender, Payment) menjadi format numerik (One-Hot Encoding).</div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                        <div><span class="font-semibold">Scaling:</span> Menstandarisasi fitur numerik (Tenure, Charges) agar memiliki skala yang sama.</div>
+                    </li>
+                </ul>
+                <div class="mt-4 bg-slate-800 text-slate-200 p-4 rounded-lg text-sm font-mono overflow-x-auto">
+<pre><code># Snippet Kode Preprocessing
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges']).fillna(0)
+X = df.drop(['Churn', 'customerID'], axis=1)
+y = df['Churn'].apply(lambda x: 1 if x == 'Yes' else 0)</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. SMOTE Mechanism -->
+    <section class="bg-white p-8 rounded-xl shadow-md">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+            <span class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center mr-3 text-lg">2</span>
+            Mekanisme Kerja SMOTE (k-Nearest Neighbors)
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div class="space-y-4">
+                <p class="text-slate-600">
+                    SMOTE bekerja dengan mensintesis data baru dari kelas minoritas, bukan sekadar menduplikasi.
+                    Algoritma ini menggunakan pendekatan <strong>k-Nearest Neighbors (k-NN)</strong>.
+                </p>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                    <h4 class="font-bold text-blue-800 mb-2">Langkah-langkah Algoritma:</h4>
+                    <ol class="list-decimal list-inside text-blue-800 space-y-1">
+                        <li>Ambil satu sampel minoritas <strong>x</strong>.</li>
+                        <li>Temukan <strong>k</strong> tetangga terdekatnya (default k=5).</li>
+                        <li>Pilih satu tetangga secara acak <strong>x_neighbor</strong>.</li>
+                        <li>Buat titik baru di garis antara <strong>x</strong> dan <strong>x_neighbor</strong>.</li>
+                    </ol>
+                </div>
+                <p class="font-mono text-sm bg-slate-100 p-2 rounded">Rumus: x_new = x + random(0,1) * (x_neighbor - x)</p>
+            </div>
+            <div class="flex justify-center">
+                <!-- Simple SVG illustration of SMOTE -->
+                <svg width="300" height="200" viewBox="0 0 300 200" class="bg-white border rounded-lg">
+                    <!-- Grid -->
+                    <defs>
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    
+                    <!-- Majority Class (Blue Circles) -->
+                    <circle cx="50" cy="50" r="4" fill="#cbd5e1" />
+                    <circle cx="70" cy="40" r="4" fill="#cbd5e1" />
+                    <circle cx="60" cy="70" r="4" fill="#cbd5e1" />
+                    <circle cx="200" cy="150" r="4" fill="#cbd5e1" />
+                    
+                    <!-- Minority Class (Red Dots) -->
+                    <circle cx="150" cy="100" r="5" fill="#ef4444" id="p1" />
+                    <circle cx="180" cy="120" r="5" fill="#ef4444" id="p2" />
+                    <circle cx="160" cy="140" r="5" fill="#ef4444" />
+                    
+                    <!-- Connection Line -->
+                    <line x1="150" y1="100" x2="180" y2="120" stroke="#ef4444" stroke-width="2" stroke-dasharray="4" />
+                    
+                    <!-- Synthetic Point -->
+                    <circle cx="165" cy="110" r="5" fill="#22c55e" stroke="#fff" stroke-width="2" />
+                    <text x="170" y="105" font-size="10" fill="#22c55e">Synthetic</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Implementation -->
+    <section class="bg-white p-8 rounded-xl shadow-md">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+            <span class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center mr-3 text-lg">3</span>
+            Implementasi Pipeline
+        </h2>
+        
+        <p class="text-slate-600 mb-4">
+            Penerapan SMOTE dilakukan di dalam <code>imblearn.pipeline</code> untuk mencegah <strong>Data Leakage</strong>.
+            Parameter yang digunakan adalah <code>k_neighbors=5</code> dan <code>random_state=42</code>.
+        </p>
+
+        <div class="bg-slate-900 text-green-400 p-6 rounded-lg font-mono text-sm overflow-x-auto">
+<pre><code>from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline as ImbPipeline
+from xgboost import XGBClassifier
+
+# Definisi Pipeline
+pipeline = ImbPipeline(steps=[
+    ('preprocessor', preprocessor),       # Transformasi Data
+    ('smote', SMOTE(k_neighbors=5, random_state=42)),  # Oversampling (Hanya Data Latih)
+    ('classifier', XGBClassifier())       # Model Training
+])
+
+# Training
+pipeline.fit(X_train, y_train)</code></pre>
+        </div>
+    </section>
+
+    <!-- 4. Evaluation -->
+    <section class="bg-white p-8 rounded-xl shadow-md">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+            <span class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center mr-3 text-lg">4</span>
+            Evaluasi Performa & Laporan
+        </h2>
+
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-slate-50 p-4 rounded-lg text-center">
+                <div class="text-indigo-600 font-bold text-lg mb-1">Precision</div>
+                <div class="text-sm text-slate-500">Ketepatan prediksi Churn. Penting agar tidak membuang biaya retensi pada pelanggan setia.</div>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg text-center border-2 border-indigo-100">
+                <div class="text-indigo-600 font-bold text-lg mb-1">Recall (Sensitivitas)</div>
+                <div class="text-sm text-slate-500">Kemampuan mendeteksi Churn. <br><strong>SMOTE meningkatkan ini secara signifikan.</strong></div>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg text-center">
+                <div class="text-indigo-600 font-bold text-lg mb-1">AUC-ROC</div>
+                <div class="text-sm text-slate-500">Kemampuan pemisahan kelas secara keseluruhan di berbagai threshold.</div>
+            </div>
+        </div>
+
+        <div class="prose max-w-none text-slate-600">
+            <h4 class="font-bold text-slate-800">Analisis Dampak & Kesimpulan</h4>
+            <ul class="list-disc pl-5 space-y-2">
+                <li>
+                    <strong>Peningkatan Deteksi Minoritas:</strong> Tanpa SMOTE, model cenderung mengabaikan kelas minoritas (Churn). 
+                    Dengan SMOTE, model memiliki lebih banyak contoh untuk dipelajari, sehingga False Negative berkurang.
+                </li>
+                <li>
+                    <strong>Trade-off:</strong> Biasanya terjadi sedikit penurunan pada Presisi karena model menjadi lebih agresif memprediksi Churn, 
+                    namun kenaikan Recall (menyelamatkan pelanggan) dianggap lebih bernilai bisnis.
+                </li>
+                <li>
+                    <strong>Kompleksitas:</strong> Algoritma menambah kompleksitas waktu pelatihan sebesar O(N_syn * M), namun tidak memengaruhi waktu prediksi (inferensi) karena SMOTE hanya dipakai saat training.
+                </li>
+            </ul>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // Simple Chart.js for Distribution Illustration
+    const ctx = document.getElementById('distributionChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Tidak Churn (Mayoritas)', 'Churn (Minoritas)'],
+            datasets: [{
+                data: [73, 27], // Ilustrasi umum
+                backgroundColor: ['#cbd5e1', '#ef4444'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: true, text: 'Distribusi Sebelum SMOTE' }
+            }
+        }
+    });
+</script>
+{% endblock %}
